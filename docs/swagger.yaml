@@ -1,0 +1,43 @@
+basePath: /
+host: 0.0.0.0:8080
+info:
+  contact:
+    email: tsvetan.dimitrov23@gmail.com
+    name: Tsvetan Dimitrov
+  description: API for exploring Ethereum blocks.
+  license:
+    name: MIT
+    url: https://www.mit.edu/~amini/LICENSE.md
+  termsOfService: http://swagger.io/terms/
+  title: Ethereum Block Scanner API
+  version: "1.0"
+paths:
+  /api/v1/{address}/transactions:
+    get:
+      consumes:
+      - application/json
+      description: Get all transactions for a fixed block range given an address.
+      parameters:
+      - description: Address
+        in: path
+        name: address
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Get all transactions for a fixed block range given an address.
+      tags:
+      - blocks
+  /api/v1/block/current:
+    get:
+      consumes:
+      - application/json
+      description: Get current Ethereum block.
+      produces:
+      - application/json
+      responses: {}
+      summary: Get current Ethereum block.
+      tags:
+      - blocks
+swagger: "2.0"

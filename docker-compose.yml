@@ -1,0 +1,20 @@
+version: '3.9'
+
+services:
+  app:
+    build: .
+    image: ethereum-block-scanner:local
+    container_name: ethereum-block-scanner
+    # environment:
+    #   SERVER_HOST: 0.0.0.0
+    #   SERVER_PORT: 8080
+    #   ETHEREUM_HOST: https://cloudflare-eth.com
+    env_file:
+      - .env.dist
+    ports:
+      - "8080:8080"
+    networks:
+      - app
+
+networks:
+  app:
