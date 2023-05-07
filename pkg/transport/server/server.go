@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -58,21 +55,4 @@ func (s *Server) Stop(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// Run manages the HTTP server lifecycle on start and on shutdown.
-func (s *Server) Run(ctx context.Context) error {
-	errChan := make(chan error)
-
-	go s.Start(ctx, errChan)
-
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	select {
-	case <-sigs:
-		return s.Stop(ctx)
-	case err := <-errChan:
-		return errors.WithStack(err)
-	}
 }

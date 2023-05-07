@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"log"
 	"net/http"
 
@@ -76,6 +77,39 @@ func (h *BlockHandler) GetCurrentBlock() http.HandlerFunc {
 		handleResponse(ctx, rw, response{
 			CurrentBlock: blockNum,
 		})
+	}
+}
+
+// SubscribeAddress godoc
+// @Summary Subscribe and address to an observer for new inbound/outbound transactions in the latest block.
+// @Description Subscribe and address to an observer for new inbound/outbound transactions in the latest block.
+// @Tags blocks
+// @Accept  json
+// @Produce  json
+// @Param request body handlers.SubscribeAddress.request true "Address"
+// @Router /api/v1/address/subscribe [post]
+func (h *BlockHandler) SubscribeAddress() http.HandlerFunc {
+	type request struct {
+		Address string `json:"address"`
+	}
+
+	return func(rw http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		var reqBody request
+
+		reqBytes, errReqBytes := io.ReadAll(r.Body)
+		errReqUnmarshal := json.Unmarshal(reqBytes, &reqBody)
+
+		errReq := errors.Join(errReqBytes, errReqUnmarshal)
+		if errReq != nil {
+			log.Println(ctx, "Could not unmarshal request params:", errReq)
+			rw.WriteHeader(http.StatusBadRequest)
+		}
+
+		subscribed := h.Parser.Subscribe(reqBody.Address)
+
+		handleResponse(ctx, rw, subscribed)
 	}
 }
 

@@ -1,12 +1,14 @@
 package httpx
 
 import (
+	"context"
 	"io"
+	"net/http"
 	nethttp "net/http"
 	"strings"
 )
 
-// Method represents an enum type for a HTTP method.
+// Method represents an enum type for an HTTP method.
 type Method int
 
 const (
@@ -22,19 +24,19 @@ func (m Method) String() string {
 }
 
 // GetRequest returns a GET HTTP request object.
-func GetRequest(url string, options ...RequestOption) (*nethttp.Request, error) {
-	return NewRequest(GetMethod, url, options...)
+func GetRequest(ctx context.Context, url string, options ...RequestOption) (*nethttp.Request, error) {
+	return NewRequest(ctx, GetMethod, url, options...)
 }
 
 // PostRequest returns a POST HTTP request object.
-func PostRequest(url string, body io.Reader, options ...RequestOption) (*nethttp.Request, error) {
+func PostRequest(ctx context.Context, url string, body io.Reader, options ...RequestOption) (*nethttp.Request, error) {
 	options = append(options, WithRequestBody(body))
 
-	return NewRequest(PostMethod, url, options...)
+	return NewRequest(ctx, PostMethod, url, options...)
 }
 
 // NewRequest builds and returns a customizable HTTP request object.
-func NewRequest(method Method, url string, options ...RequestOption) (*nethttp.Request, error) {
+func NewRequest(ctx context.Context, method Method, url string, options ...RequestOption) (*nethttp.Request, error) {
 	config := newHTTPRequestDefaultConfig()
 
 	config.ApplyOptions(options...)
@@ -45,7 +47,7 @@ func NewRequest(method Method, url string, options ...RequestOption) (*nethttp.R
 		body = config.body
 	}
 
-	req, err := nethttp.NewRequest(method.String(), url, body)
+	req, err := http.NewRequestWithContext(ctx, method.String(), url, body)
 
 	if len(config.queryParams) > 0 {
 		reqURL := req.URL

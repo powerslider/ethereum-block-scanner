@@ -21,7 +21,7 @@ type clientConfig struct {
 // RedirectPolicy specifies the policy for handling redirects.
 type RedirectPolicy func(req *nethttp.Request, via []*nethttp.Request) error
 
-// ClientOption specifies a HTTP client setting.
+// ClientOption specifies an HTTP client setting.
 type ClientOption func(config *clientConfig)
 
 func newHTTPClientDefaultConfig() *clientConfig {
@@ -81,7 +81,7 @@ type basicAuth struct {
 	password string
 }
 
-// RequestOption specifies a HTTP request option.
+// RequestOption specifies an HTTP request option.
 type RequestOption func(config *requestConfig)
 
 func newHTTPRequestDefaultConfig() *requestConfig {

@@ -58,7 +58,7 @@ func HandleResponseError(
 			rpcReq.Method, redactedURL, httpResp.StatusCode)
 	}
 
-	// if we have a response body, but also a http error situation, return both
+	// if we have a response body, but also an HTTP error situation, return both
 	if httpResp.StatusCode >= 400 {
 		if rpcResponse.Error != nil {
 			return &httpx.Error{

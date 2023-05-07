@@ -1,4 +1,10 @@
 basePath: /
+definitions:
+  handlers.SubscribeAddress.request:
+    properties:
+      address:
+        type: string
+    type: object
 host: 0.0.0.0:8080
 info:
   contact:
@@ -27,6 +33,26 @@ paths:
       - application/json
       responses: {}
       summary: Get all transactions for a fixed block range given an address.
+      tags:
+      - blocks
+  /api/v1/address/subscribe:
+    post:
+      consumes:
+      - application/json
+      description: Subscribe and address to an observer for new inbound/outbound transactions
+        in the latest block.
+      parameters:
+      - description: Address
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.SubscribeAddress.request'
+      produces:
+      - application/json
+      responses: {}
+      summary: Subscribe and address to an observer for new inbound/outbound transactions
+        in the latest block.
       tags:
       - blocks
   /api/v1/block/current:

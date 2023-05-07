@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"context"
 	"io"
 	"net"
 	"net/http"
@@ -18,7 +19,7 @@ func (e *Error) Error() string {
 	return e.Err.Error()
 }
 
-// Client represents a HTTP client wrapper.
+// Client represents an HTTP client wrapper.
 type Client struct {
 	clientInstance *http.Client
 }
@@ -52,9 +53,9 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	return c.clientInstance.Do(req)
 }
 
-// Get executes a HTTP GET request.
-func (c *Client) Get(url string, options ...RequestOption) (*http.Response, error) {
-	req, err := GetRequest(url, options...)
+// Get executes an HTTP GET request.
+func (c *Client) Get(ctx context.Context, url string, options ...RequestOption) (*http.Response, error) {
+	req, err := GetRequest(ctx, url, options...)
 
 	if err != nil {
 		return nil, err
@@ -63,9 +64,10 @@ func (c *Client) Get(url string, options ...RequestOption) (*http.Response, erro
 	return c.Do(req)
 }
 
-// Post executes a HTTP POST request.
-func (c *Client) Post(url string, body io.Reader, options ...RequestOption) (*http.Response, error) {
-	req, err := PostRequest(url, body, options...)
+// Post executes an HTTP POST request.
+func (c *Client) Post(
+	ctx context.Context, url string, body io.Reader, options ...RequestOption) (*http.Response, error) {
+	req, err := PostRequest(ctx, url, body, options...)
 
 	if err != nil {
 		return nil, err

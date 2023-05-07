@@ -24,6 +24,33 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/address/subscribe": {
+            "post": {
+                "description": "Subscribe and address to an observer for new inbound/outbound transactions in the latest block.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "blocks"
+                ],
+                "summary": "Subscribe and address to an observer for new inbound/outbound transactions in the latest block.",
+                "parameters": [
+                    {
+                        "description": "Address",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.SubscribeAddress.request"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
         "/api/v1/block/current": {
             "get": {
                 "description": "Get current Ethereum block.",
@@ -63,6 +90,16 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {}
+            }
+        }
+    },
+    "definitions": {
+        "handlers.SubscribeAddress.request": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                }
             }
         }
     }

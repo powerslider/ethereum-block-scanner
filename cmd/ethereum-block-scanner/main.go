@@ -4,16 +4,18 @@ import (
 	"context"
 	"log"
 	"os"
-
-	"github.com/powerslider/ethereum-block-scanner/pkg/transport/client/jsonrpc"
+	"os/signal"
+	"syscall"
 
 	"github.com/gorilla/mux"
-	"github.com/powerslider/ethereum-block-scanner/pkg/transport/server"
-
-	"github.com/powerslider/ethereum-block-scanner/pkg/handlers"
-
 	"github.com/joho/godotenv"
+	"github.com/pkg/errors"
 	"github.com/powerslider/ethereum-block-scanner/pkg/configs"
+	"github.com/powerslider/ethereum-block-scanner/pkg/handlers"
+	"github.com/powerslider/ethereum-block-scanner/pkg/sdk"
+	"github.com/powerslider/ethereum-block-scanner/pkg/storage/memory"
+	"github.com/powerslider/ethereum-block-scanner/pkg/transport/client/jsonrpc"
+	"github.com/powerslider/ethereum-block-scanner/pkg/transport/server"
 )
 
 // @title Ethereum Block Scanner API
@@ -39,12 +41,39 @@ func main() {
 	conf := configs.InitializeConfig()
 	client := jsonrpc.NewDefaultClient(conf.EthereumHost)
 
+	txStore := memory.NewTransactionsRepository()
+	subsStore := memory.NewSubscriptionsRepository()
+
+	blockParser := sdk.NewBlockParser(client, txStore)
+	blockListener := sdk.NewBlockListener(blockParser, txStore, subsStore)
+
+	errServerCh := make(chan error)
+	errListenerCh := make(chan error)
+
+	go blockListener.ListenForNewTransactions(ctx, errListenerCh)
+
 	router := mux.NewRouter()
-	router = handlers.InitializeHandlers(conf, router, client)
+	router = handlers.InitializeHandlers(conf, router, blockParser)
 	s := server.NewServer(conf, router)
 
-	if err = s.Run(ctx); err != nil {
-		log.Fatal("error starting the HTTP server: ", err)
+	go s.Start(ctx, errServerCh)
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	for {
+		select {
+		case <-sigs:
+			if err = s.Stop(ctx); err != nil {
+				log.Fatal("error stopping HTTP server:", errors.WithStack(err))
+			}
+
+			os.Exit(0)
+		case err = <-errServerCh:
+			log.Fatal("HTTP server error: ", errors.WithStack(err))
+		case err = <-errListenerCh:
+			log.Println(err)
+		}
 	}
 }
 

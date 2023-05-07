@@ -76,13 +76,13 @@ func (c *RPCClient) CallFor(ctx context.Context, out any, method string, params 
 }
 
 func (c *RPCClient) doCall(
-	_ context.Context, rpcReq *RPCRequest, options ...httpx.RequestOption) (*RPCResponse, error) {
+	ctx context.Context, rpcReq *RPCRequest, options ...httpx.RequestOption) (*RPCResponse, error) {
 	body, err := json.Marshal(rpcReq)
 	if err != nil {
 		return nil, err
 	}
 
-	httpReq, err := httpx.PostRequest(c.endpoint, bytes.NewReader(body), options...)
+	httpReq, err := httpx.PostRequest(ctx, c.endpoint, bytes.NewReader(body), options...)
 	if err != nil {
 		return nil, err
 	}
