@@ -12,14 +12,17 @@ import (
 func registerHTTPRoutes(
 	config *configs.Config, muxer *mux.Router, handler *BlockHandler) *mux.Router {
 	muxer.HandleFunc(
-		"/api/v1/{address}/transactions",
+		"/api/v1/block/current",
+		handler.GetCurrentBlock()).Methods("GET")
+	muxer.HandleFunc(
+		"/api/v1/address/{address}/transactions",
 		handler.GetBlockTransactionsPerAddress()).Methods("GET")
+	muxer.HandleFunc(
+		"/api/v1/subscription/{address}/transactions",
+		handler.GetTransactionsPerSubscriber()).Methods("GET")
 	muxer.HandleFunc(
 		"/api/v1/address/subscribe",
 		handler.SubscribeAddress()).Methods("POST")
-	muxer.HandleFunc(
-		"/api/v1/block/current",
-		handler.GetCurrentBlock()).Methods("GET")
 
 	swaggerJsonURL := fmt.Sprintf("http://%s:%d/swagger/doc.json", config.Host, config.Port)
 

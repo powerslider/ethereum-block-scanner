@@ -1,12 +1,13 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"io"
-	"log"
 	"net/http"
+	"strconv"
+
+	pkgErrors "github.com/pkg/errors"
 
 	"github.com/gorilla/mux"
 
@@ -32,24 +33,73 @@ func NewBlockHandler(parser *sdk.BlockParser) *BlockHandler {
 // @Accept  json
 // @Produce  json
 // @Param address path string true "Address"
-// @Router /api/v1/{address}/transactions [get]
+// @Param blockRange query int false "Block Range" default(0)
+// @Router /api/v1/address/{address}/transactions [get]
 func (h *BlockHandler) GetBlockTransactionsPerAddress() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+
+		blockRange, err := strconv.Atoi(r.URL.Query().Get("blockRange"))
+		if err != nil {
+			badRequestError(
+				rw,
+				pkgErrors.Wrap(err, "invalid query param 'blockRange':"),
+			)
+
+			return
+		}
+
 		vars := mux.Vars(r)
 
 		address, ok := vars["address"]
 		if !ok {
-			rw.WriteHeader(http.StatusBadRequest)
+			badRequestError(
+				rw,
+				errors.New("required path param 'address' is missing"),
+			)
+
+			return
 		}
 
-		txs, err := h.Parser.GetTransactions(ctx, address)
+		txs, err := h.Parser.GetTransactionsForBlockRange(ctx, address, blockRange)
 		if err != nil {
-			log.Printf("Could not get transactions for address %s: %v:", address, err)
-			rw.WriteHeader(http.StatusBadRequest)
+			badRequestError(
+				rw,
+				pkgErrors.Wrapf(err, "Could not get transactions for address %s", address),
+			)
+
+			return
 		}
 
-		handleResponse(ctx, rw, txs)
+		handleResponse(rw, txs)
+	}
+}
+
+// GetTransactionsPerSubscriber godoc
+// @Summary Get all transactions for a subscribed address.
+// @Description Get all transactions for a subscribed address.
+// @Tags blocks
+// @Accept  json
+// @Produce  json
+// @Param address path string true "Address"
+// @Router /api/v1/subscription/{address}/transactions [get]
+func (h *BlockHandler) GetTransactionsPerSubscriber() http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+
+		address, ok := vars["address"]
+		if !ok {
+			badRequestError(
+				rw,
+				errors.New("required path param 'address' is missing"),
+			)
+
+			return
+		}
+
+		txs := h.Parser.GetTransactionsPerSubscriber(address)
+
+		handleResponse(rw, txs)
 	}
 }
 
@@ -70,11 +120,15 @@ func (h *BlockHandler) GetCurrentBlock() http.HandlerFunc {
 
 		blockNum, err := h.Parser.GetCurrentBlock(ctx)
 		if err != nil {
-			log.Printf("Could not get current block number: %v:", err)
-			rw.WriteHeader(http.StatusBadRequest)
+			badRequestError(
+				rw,
+				pkgErrors.Wrap(err, "could not get current block number:"),
+			)
+
+			return
 		}
 
-		handleResponse(ctx, rw, response{
+		handleResponse(rw, response{
 			CurrentBlock: blockNum,
 		})
 	}
@@ -94,8 +148,6 @@ func (h *BlockHandler) SubscribeAddress() http.HandlerFunc {
 	}
 
 	return func(rw http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-
 		var reqBody request
 
 		reqBytes, errReqBytes := io.ReadAll(r.Body)
@@ -103,23 +155,42 @@ func (h *BlockHandler) SubscribeAddress() http.HandlerFunc {
 
 		errReq := errors.Join(errReqBytes, errReqUnmarshal)
 		if errReq != nil {
-			log.Println(ctx, "Could not unmarshal request params:", errReq)
-			rw.WriteHeader(http.StatusBadRequest)
+			badRequestError(
+				rw,
+				pkgErrors.Wrap(errReq, "could not unmarshal request params:"),
+			)
+
+			return
 		}
 
 		subscribed := h.Parser.Subscribe(reqBody.Address)
 
-		handleResponse(ctx, rw, subscribed)
+		handleResponse(rw, subscribed)
 	}
 }
 
-func handleResponse(ctx context.Context, rw http.ResponseWriter, resp any) {
+func handleResponse(rw http.ResponseWriter, resp any) {
 	jsonResp, errRespMarshal := json.Marshal(resp)
 	_, errRespWrite := rw.Write(jsonResp)
 
 	errResp := errors.Join(errRespMarshal, errRespWrite)
 	if errResp != nil {
-		log.Println(ctx, "Could not write response:", errResp)
-		rw.WriteHeader(http.StatusInternalServerError)
+		http.Error(rw, errResp.Error(), http.StatusInternalServerError)
+	}
+}
+
+func badRequestError(rw http.ResponseWriter, err error) {
+	errBytes, err := json.Marshal(struct {
+		Status int    `json:"status"`
+		Error  string `json:"error"`
+	}{
+		Status: http.StatusBadRequest,
+		Error:  err.Error(),
+	})
+
+	if err == nil {
+		http.Error(rw, string(errBytes), http.StatusBadRequest)
+	} else {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
 	}
 }

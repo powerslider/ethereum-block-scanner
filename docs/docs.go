@@ -51,6 +51,38 @@ const docTemplate = `{
                 "responses": {}
             }
         },
+        "/api/v1/address/{address}/transactions": {
+            "get": {
+                "description": "Get all transactions for a fixed block range given an address.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "blocks"
+                ],
+                "summary": "Get all transactions for a fixed block range given an address.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Address",
+                        "name": "address",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Block Range",
+                        "name": "blockRange",
+                        "in": "query"
+                    }
+                ],
+                "responses": {}
+            }
+        },
         "/api/v1/block/current": {
             "get": {
                 "description": "Get current Ethereum block.",
@@ -67,9 +99,9 @@ const docTemplate = `{
                 "responses": {}
             }
         },
-        "/api/v1/{address}/transactions": {
+        "/api/v1/subscription/{address}/transactions": {
             "get": {
-                "description": "Get all transactions for a fixed block range given an address.",
+                "description": "Get all transactions for a subscribed address.",
                 "consumes": [
                     "application/json"
                 ],
@@ -79,7 +111,7 @@ const docTemplate = `{
                 "tags": [
                     "blocks"
                 ],
-                "summary": "Get all transactions for a fixed block range given an address.",
+                "summary": "Get all transactions for a subscribed address.",
                 "parameters": [
                     {
                         "type": "string",

@@ -13,24 +13,26 @@ import (
 	"github.com/powerslider/ethereum-block-scanner/pkg/numbers"
 )
 
-const _maxBlockRange = 100000
-
 // Parser defines SDK operations on the Ethereum blockchain.
 type Parser interface {
 	// GetCurrentBlock last parsed block.
 	GetCurrentBlock(ctx context.Context) (int, error)
 
-	// Subscribe add address to observer.
+	// Subscribe adds an address to be observed for new transactions.
 	Subscribe(address string) bool
 
-	// GetTransactions list of inbound or outbound transactions for an address
-	GetTransactions(ctx context.Context, address string) ([]blocks.Transaction, error)
+	// GetTransactionsPerSubscriber lists observed transactions given a registered subscriber address.
+	GetTransactionsPerSubscriber(address string) []blocks.Transaction
+
+	// GetTransactionsForBlockRange lists inbound or outbound transactions for an address for a given block range
+	// from latest to a specified one.
+	GetTransactionsForBlockRange(ctx context.Context, address string, blockRange int) ([]blocks.Transaction, error)
 }
 
 // BlockParser implements SDK operations on the Ethereum blockchain.
 type BlockParser struct {
 	EthClient *jsonrpc.RPCClient
-	TxStore   *memory.TransactionsRepository
+	TxStore   *memory.TransactionHistoryRepository
 	SubsStore *memory.SubscriptionsRepository
 }
 
@@ -39,11 +41,13 @@ var _ Parser = (*BlockParser)(nil)
 // NewBlockParser is a constructor function for BlockParser.
 func NewBlockParser(
 	ethClient *jsonrpc.RPCClient,
-	txStore *memory.TransactionsRepository,
+	txStore *memory.TransactionHistoryRepository,
+	subsStore *memory.SubscriptionsRepository,
 ) *BlockParser {
 	return &BlockParser{
 		EthClient: ethClient,
 		TxStore:   txStore,
+		SubsStore: subsStore,
 	}
 }
 
@@ -56,7 +60,7 @@ func (p *BlockParser) GetCurrentBlock(ctx context.Context) (int, error) {
 
 	hexStr := fmt.Sprintf("%v", resp.Result)
 
-	blockNumberInt, err := numbers.ParseInt(hexStr)
+	blockNumberInt, err := numbers.HexToInt(hexStr)
 	if err != nil {
 		return -1, err
 	}
@@ -66,7 +70,7 @@ func (p *BlockParser) GetCurrentBlock(ctx context.Context) (int, error) {
 
 // Subscribe implements adding an address to an observer.
 func (p *BlockParser) Subscribe(address string) bool {
-	p.SubsStore.Insert(strings.ToLower(address))
+	p.SubsStore.InsertSubscriberAddress(strings.ToLower(address))
 
 	return true
 }
@@ -84,15 +88,16 @@ func (p *BlockParser) GetBlockTransactions(ctx context.Context, blockNum int) ([
 	return block.Transactions, nil
 }
 
-// GetTransactions implements getting the transaction history for inbound and outbound transactions given an address.
-// NOTE: Checked blocks are limited to _maxBlockRange from the latest block due to time constraints.
-func (p *BlockParser) GetTransactions(ctx context.Context, address string) ([]blocks.Transaction, error) {
+// GetTransactionsForBlockRange implements getting the transaction history for inbound and outbound transactions
+// given an address.
+func (p *BlockParser) GetTransactionsForBlockRange(
+	ctx context.Context, address string, blockRange int) ([]blocks.Transaction, error) {
 	latestBlockNum, err := p.GetCurrentBlock(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	currentBlockRange := latestBlockNum - _maxBlockRange
+	currentBlockRange := latestBlockNum - blockRange
 
 	blockTransactions, err := p.GetBlockTransactions(ctx, latestBlockNum)
 	if err != nil {
@@ -108,6 +113,8 @@ func (p *BlockParser) GetTransactions(ctx context.Context, address string) ([]bl
 
 	for i := latestBlockNum; i >= currentBlockRange; i-- {
 		for _, tx := range blockTransactions {
+			//log.Println(tx.To)
+			//log.Println(tx.From)
 			if address == strings.ToLower(tx.To) {
 				p.TxStore.Insert(address, latestBlockNum, tx, true)
 			} else if address == strings.ToLower(tx.From) {
@@ -117,4 +124,11 @@ func (p *BlockParser) GetTransactions(ctx context.Context, address string) ([]bl
 	}
 
 	return p.TxStore.GetAllTransactionsPerAddress(address), nil
+}
+
+// GetTransactionsPerSubscriber implements listing of observed transactions given a registered subscriber address.
+func (p *BlockParser) GetTransactionsPerSubscriber(address string) []blocks.Transaction {
+	address = strings.ToLower(address)
+
+	return p.SubsStore.GetObservedTransactionsPerAddress(address)
 }

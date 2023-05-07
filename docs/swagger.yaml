@@ -18,7 +18,7 @@ info:
   title: Ethereum Block Scanner API
   version: "1.0"
 paths:
-  /api/v1/{address}/transactions:
+  /api/v1/address/{address}/transactions:
     get:
       consumes:
       - application/json
@@ -29,6 +29,11 @@ paths:
         name: address
         required: true
         type: string
+      - default: 0
+        description: Block Range
+        in: query
+        name: blockRange
+        type: integer
       produces:
       - application/json
       responses: {}
@@ -64,6 +69,23 @@ paths:
       - application/json
       responses: {}
       summary: Get current Ethereum block.
+      tags:
+      - blocks
+  /api/v1/subscription/{address}/transactions:
+    get:
+      consumes:
+      - application/json
+      description: Get all transactions for a subscribed address.
+      parameters:
+      - description: Address
+        in: path
+        name: address
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Get all transactions for a subscribed address.
       tags:
       - blocks
 swagger: "2.0"

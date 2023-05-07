@@ -44,18 +44,21 @@ func main() {
 	txStore := memory.NewTransactionsRepository()
 	subsStore := memory.NewSubscriptionsRepository()
 
-	blockParser := sdk.NewBlockParser(client, txStore)
-	blockListener := sdk.NewBlockListener(blockParser, txStore, subsStore)
+	blockParser := sdk.NewBlockParser(client, txStore, subsStore)
+	blockListener := sdk.NewBlockObserver(blockParser, subsStore)
 
 	errServerCh := make(chan error)
 	errListenerCh := make(chan error)
 
+	// Start block observer to track new transactions that have occurred in the latest block
+	// involving subscribed addresses.
 	go blockListener.ListenForNewTransactions(ctx, errListenerCh)
 
 	router := mux.NewRouter()
 	router = handlers.InitializeHandlers(conf, router, blockParser)
 	s := server.NewServer(conf, router)
 
+	// Start HTTP server.
 	go s.Start(ctx, errServerCh)
 
 	sigs := make(chan os.Signal, 1)

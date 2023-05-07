@@ -8,29 +8,26 @@ import (
 	"github.com/powerslider/ethereum-block-scanner/pkg/storage/memory"
 )
 
-// BlockListener implements SDK operations on the Ethereum blockchain.
-type BlockListener struct {
+// BlockObserver implements SDK operations on the Ethereum blockchain.
+type BlockObserver struct {
 	BlockParser *BlockParser
-	TxStore     *memory.TransactionsRepository
 	SubsStore   *memory.SubscriptionsRepository
 }
 
-// NewBlockListener is a constructor function for BlockParser.
-func NewBlockListener(
+// NewBlockObserver is a constructor function for BlockObserver.
+func NewBlockObserver(
 	blockParser *BlockParser,
-	txStore *memory.TransactionsRepository,
 	subsStore *memory.SubscriptionsRepository,
-) *BlockListener {
-	return &BlockListener{
+) *BlockObserver {
+	return &BlockObserver{
 		BlockParser: blockParser,
-		TxStore:     txStore,
 		SubsStore:   subsStore,
 	}
 }
 
 // ListenForNewTransactions implements polling for the latest block and matching if the subscribed addresses
 // have inbound or outbound transactions.
-func (p *BlockListener) ListenForNewTransactions(ctx context.Context, errCh chan error) {
+func (p *BlockObserver) ListenForNewTransactions(ctx context.Context, errCh chan error) {
 	for {
 		addresses := p.SubsStore.GetAllSubscriptions()
 		if len(addresses) == 0 {
@@ -51,10 +48,8 @@ func (p *BlockListener) ListenForNewTransactions(ctx context.Context, errCh chan
 
 		for _, a := range addresses {
 			for _, tx := range blockTransactions {
-				if a == strings.ToLower(tx.To) {
-					p.TxStore.Insert(a, latestBlockNum, tx, true)
-				} else if a == strings.ToLower(tx.From) {
-					p.TxStore.Insert(a, latestBlockNum, tx, false)
+				if a == strings.ToLower(tx.To) || a == strings.ToLower(tx.From) {
+					p.SubsStore.InsertObservedTransaction(a, tx)
 				}
 			}
 		}

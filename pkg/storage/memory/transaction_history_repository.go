@@ -6,16 +6,16 @@ import (
 	"github.com/powerslider/ethereum-block-scanner/pkg/blocks"
 )
 
-// TransactionsRepository holds the CRUD db operations for CasinoRoundBet.
-type TransactionsRepository struct {
+// TransactionHistoryRepository holds the CRUD db operations for CasinoRoundBet.
+type TransactionHistoryRepository struct {
 	inboundStore     *MultiMap[string, blocks.Transaction]
 	outboundStore    *MultiMap[string, blocks.Transaction]
 	latestBlockStore sync.Map
 }
 
-// NewTransactionsRepository is a constructor function for TransactionsRepository.
-func NewTransactionsRepository() *TransactionsRepository {
-	return &TransactionsRepository{
+// NewTransactionsRepository is a constructor function for TransactionHistoryRepository.
+func NewTransactionsRepository() *TransactionHistoryRepository {
+	return &TransactionHistoryRepository{
 		inboundStore:     New[string, blocks.Transaction](),
 		outboundStore:    New[string, blocks.Transaction](),
 		latestBlockStore: sync.Map{},
@@ -23,7 +23,7 @@ func NewTransactionsRepository() *TransactionsRepository {
 }
 
 // Insert inserts a new blocks.Transaction entity.
-func (r *TransactionsRepository) Insert(address string, blockNumber int, tx blocks.Transaction, isInbound bool) {
+func (r *TransactionHistoryRepository) Insert(address string, blockNumber int, tx blocks.Transaction, isInbound bool) {
 	r.latestBlockStore.Store(address, blockNumber)
 
 	if isInbound {
@@ -34,7 +34,7 @@ func (r *TransactionsRepository) Insert(address string, blockNumber int, tx bloc
 }
 
 // GetLatestBlockNumberPerAddress returns the latest block containing transactions to/from a given address.
-func (r *TransactionsRepository) GetLatestBlockNumberPerAddress(address string) int {
+func (r *TransactionHistoryRepository) GetLatestBlockNumberPerAddress(address string) int {
 	blockNum, found := r.latestBlockStore.Load(address)
 	if !found {
 		return -1
@@ -44,7 +44,7 @@ func (r *TransactionsRepository) GetLatestBlockNumberPerAddress(address string) 
 }
 
 // GetInboundTransactionsPerAddress returns all inbound transactions per a given address.
-func (r *TransactionsRepository) GetInboundTransactionsPerAddress(address string) []blocks.Transaction {
+func (r *TransactionHistoryRepository) GetInboundTransactionsPerAddress(address string) []blocks.Transaction {
 	txs, found := r.inboundStore.Get(address)
 	if !found {
 		return nil
@@ -54,7 +54,7 @@ func (r *TransactionsRepository) GetInboundTransactionsPerAddress(address string
 }
 
 // GetOutboundTransactionsPerAddress returns all outbound transactions per a given address.
-func (r *TransactionsRepository) GetOutboundTransactionsPerAddress(address string) []blocks.Transaction {
+func (r *TransactionHistoryRepository) GetOutboundTransactionsPerAddress(address string) []blocks.Transaction {
 	txs, found := r.outboundStore.Get(address)
 	if !found {
 		return nil
@@ -64,7 +64,7 @@ func (r *TransactionsRepository) GetOutboundTransactionsPerAddress(address strin
 }
 
 // GetAllTransactionsPerAddress returns all inbound transactions per a given address.
-func (r *TransactionsRepository) GetAllTransactionsPerAddress(address string) []blocks.Transaction {
+func (r *TransactionHistoryRepository) GetAllTransactionsPerAddress(address string) []blocks.Transaction {
 	txs := make([]blocks.Transaction, 0)
 
 	txs = append(txs, r.GetInboundTransactionsPerAddress(address)...)
