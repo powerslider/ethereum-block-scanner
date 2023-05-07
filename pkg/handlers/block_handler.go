@@ -16,11 +16,11 @@ import (
 
 // BlockHandler represents an HTTP handler for Ethereum block operations.
 type BlockHandler struct {
-	Parser *sdk.BlockParser
+	Parser sdk.Parser
 }
 
 // NewBlockHandler initializes a new instance of BlockHandler.
-func NewBlockHandler(parser *sdk.BlockParser) *BlockHandler {
+func NewBlockHandler(parser sdk.Parser) *BlockHandler {
 	return &BlockHandler{
 		Parser: parser,
 	}

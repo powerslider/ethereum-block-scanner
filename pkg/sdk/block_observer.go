@@ -4,20 +4,18 @@ import (
 	"context"
 	"strings"
 	"time"
-
-	"github.com/powerslider/ethereum-block-scanner/pkg/storage/memory"
 )
 
 // BlockObserver implements SDK operations on the Ethereum blockchain.
 type BlockObserver struct {
-	BlockParser *BlockParser
-	SubsStore   *memory.SubscriptionsRepository
+	BlockParser Parser
+	SubsStore   SubscriptionsStore
 }
 
 // NewBlockObserver is a constructor function for BlockObserver.
 func NewBlockObserver(
-	blockParser *BlockParser,
-	subsStore *memory.SubscriptionsRepository,
+	blockParser Parser,
+	subsStore SubscriptionsStore,
 ) *BlockObserver {
 	return &BlockObserver{
 		BlockParser: blockParser,
@@ -26,7 +24,7 @@ func NewBlockObserver(
 }
 
 // ListenForNewTransactions implements polling for the latest block and matching if the subscribed addresses
-// have inbound or outbound transactions.
+// have inbound or outbound transactions contained in it.
 func (p *BlockObserver) ListenForNewTransactions(ctx context.Context, errCh chan error) {
 	for {
 		addresses := p.SubsStore.GetAllSubscriptions()
